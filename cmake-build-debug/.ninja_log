@@ -1,3 +1,11 @@
 # ninja log v5
 1	79	7230789037132994	CMakeFiles/IIA_2023_trepaColinas_AlgoritmoEvolutivo.dir/main.c.obj	75f6611868631c0
 81	232	7230789038613363	IIA_2023_trepaColinas_AlgoritmoEvolutivo.exe	774e66c1d3335a51
+13	167	7230792346338620	CMakeFiles/IIA_2023_trepaColinas_AlgoritmoEvolutivo.dir/funcao.c.obj	2a1415aae2acdb37
+21	209	7230792346775929	CMakeFiles/IIA_2023_trepaColinas_AlgoritmoEvolutivo.dir/algoritmo.c.obj	4460104ca62b11e8
+3	180	7230792725064614	CMakeFiles/IIA_2023_trepaColinas_AlgoritmoEvolutivo.dir/main.c.obj	75f6611868631c0
+22	228	7230793272629531	CMakeFiles/IIA_2023_trepaColinas_AlgoritmoEvolutivo.dir/funcao.c.obj	2a1415aae2acdb37
+3	230	7230793272659769	CMakeFiles/IIA_2023_trepaColinas_AlgoritmoEvolutivo.dir/main.c.obj	75f6611868631c0
+33	247	7230793272840415	CMakeFiles/IIA_2023_trepaColinas_AlgoritmoEvolutivo.dir/algoritmo.c.obj	4460104ca62b11e8
+12	255	7230793272923400	CMakeFiles/IIA_2023_trepaColinas_AlgoritmoEvolutivo.dir/utils.c.obj	4492590f33ac81da
+255	451	7230793274808925	IIA_2023_trepaColinas_AlgoritmoEvolutivo.exe	f42043625ea0aea0
