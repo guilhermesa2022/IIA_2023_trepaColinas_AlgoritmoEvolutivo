@@ -31,7 +31,6 @@ int calcula_fit(int *solucao,int **matriz, int v,int a,int k){
             }
     }
     soma = soma/2;
-    printf("suma : %d", soma);
     return soma;
 }
 

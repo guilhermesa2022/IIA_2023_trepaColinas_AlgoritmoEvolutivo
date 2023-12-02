@@ -8,7 +8,7 @@
 #define DEFAULT_RUNS 10
 #define POP_SIZE 120
 #define GER_NUM 1000
-#define PROB_REPROD 0.5
+#define PROB_REPROD 0.05
 #define PROB_MUTAC 0.2
 #define PROB_REC 0.01
 #define T_SIZE 4
