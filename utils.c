@@ -1,5 +1,5 @@
 //
-// Created by 35193 on 30/11/2023.
+// Created by 35193 on 06/12/2023.
 //
 
 #include "utils.h"
@@ -9,13 +9,10 @@
 #include <time.h>
 #include "algoritmo.h"
 #include "funcao.h"
-#define linhas 2
 
-//*********************************Trepa colinas *************************//
 
-// funcao Mudificada codigo: mod223
-int **init_dados(char *filename ,int *v ,int *a, int *k, int*somaDoCustos){
-    int **matbin = NULL;
+int **inicializar_Dados_Ficheiro(char *filename ,int *vert ,int *arestas, int *k, int *somaDoCustos){
+    int **matriz = NULL;
     FILE *f;
     int  l=0, m=0, custo = 0;
 
@@ -27,228 +24,169 @@ int **init_dados(char *filename ,int *v ,int *a, int *k, int*somaDoCustos){
     }
 
     fscanf(f, " k %d",k);
-    fscanf(f, " p edge %d %d",v,a);
-    ////////cria matriz com v linhas e v colunas com intenção de armazenar valores binarios
-    matbin = malloc(sizeof(int*)*(*v));
-    for(int i = 0; i < (*v); i++){
-        matbin[i] = malloc(sizeof(int)*(*v));
+    fscanf(f, " p edge %d %d", vert, arestas);
+    matriz = malloc(sizeof(int*)*(*vert));
+    for(int i = 0; i < (*vert); i++){
+        matriz[i] = malloc(sizeof(int)*(*vert));
     }
-    ////////////////////////////////////////////////// se matbin der erro a abrir;
-    if(matbin == NULL){
+
+    if(matriz == NULL){
         printf("Erro na alocacao de memoria\n");
         exit(1);
     }
-    //////////////////////////////////////////////////preencher tudo com zero
-    for(int i=0;i < (*v); i++)
-        for(int j=0; j < (*v) ;j++)
-            matbin[i][j] = 0;
+
+    for(int i=0;i < (*vert); i++)
+        for(int j=0; j < (*vert) ;j++)
+            matriz[i][j] = 0;
 
     while (fscanf(f," e %d %d %d", &l, &m, &custo)!= EOF)
     {
         *somaDoCustos += custo;
-        matbin[l-1][m-1] = custo;
-        matbin[m-1][l-1] = custo;
+        matriz[l-1][m-1] = custo;
+        matriz[m-1][l-1] = custo;
     }
-    printf(" \ndados do ficheiro => k = %d v = %d a = %d \n",(*k),(*v),(*a));
+    printf(" \ndados do ficheiro => k = %d vert = %d arestas = %d \n",(*k),(*vert),(*arestas));
     fclose(f);
-    return matbin;
+    return matriz;
 }
 
-
-void init_rand()
-{
-    srand((unsigned)time(NULL));
-}
-void mostraMat(int **p, int nLin, int nCol){
-    int i,j,pos,x=0;
-
-    for(i=0; i<nCol; i++){
-        printf("\t \t \t");
-        for(j=0; j<nLin; j++){
-            printf("|  %d  |", p[j][i]); // escreve o x ou o O no tabuleiro
+void printMatriz(int** matriz, int lado){
+    for (int i = 0; i < lado; ++i) {
+        for (int j = 0; j < lado; ++j) {
+            printf("%d ",matriz[i][j]);
         }
         printf("\n");
     }
 }
 
-// funcao Mudificada codigo: mod223
-void gera_sol_inicial(int *sol, int v, int k)
+void init_rand()
 {
-    int i, x;
-    //iniciação de todas a posições
-    for(i=1; i<=v; i++)
+    srand((unsigned)time(NULL));
+}
+
+void gera_sol_inicial(int *sol, int v, int k){
+    int x;
+    for(int i=0; i<v; i++)
         sol[i]=0;
 
-    for(i=0; i<k; i++){
+    for(int i=0; i<k; i++){
         do{
-            x = random_l_h(1,(v));
+            x = random_l_h(0,(v-1));
         }while(sol[x] != 0);
         sol[x]=1;
     }
 }
 
-int random_l_h(int min, int max)
-{
+void gera_sol_inicial2(int *sol, int v, int k, int **mat){
+    int random1;
+    for (int i = 0; i < v; ++i) {
+        sol[i] = 0;
+    }
+    int inicial = random_l_h(0, v -1);
+    sol[inicial] = 1;
+
+    for(int i = 0; i < k - 1; i++){
+        do {
+            random1 = random_l_h(0, v - 1);
+        } while (mat[inicial][random1] != 0 || sol[random1] == 1);
+        sol[random1] = 1;
+        inicial = random1;
+    }
+
+}
+
+int random_l_h(int min, int max){
     return min + rand() % (max-min+1);
 }
-void mostra_sol(int *sol,int vert)
+
+void escreve_sol(int *sol, int v)
 {
-    int j=0;
-    for(int i=1;i<=vert;i++)
-    {
-        printf(" \n Sol[i] = %d ",sol[i]);
-        j++;
-    }
-    printf(" j =  %d",j);
-}
-void escreve_sol(int *sol, int v, int cont)
-{
-    int i;
     printf("\nConjunto : ");
-    printf("{");
-    for(i=1; i<=v; i++)
+    printf("[");
+    for(int i= 0; i<v; i++)
         if(sol[i]==1)
-            printf("%d ",i);
-    printf("}");
-    cont++;
+            printf("%d ",i+1);
+    printf("]");
+
 
     printf("\n");
 }
-//*************************************Final trepa colinas********************//
 
-void initPop(int* pop[POP_SIZE],int** matriz, int v, int a,int k) {
-    int i;
-    // Gerar cada individuo da populacao
-    for (i = 0; i <=POP_SIZE; i++) {
+int flip(){
+    if ((((float)rand()) / RAND_MAX) < 0.5)
+        return 0;
+    else
+        return 1;
+}
 
-        pop[i] = malloc(sizeof(int) * (v+1));
+pchrom init_pop(struct info d)
+{
+    int     i, j, pos;
+    pchrom  indiv = NULL;
 
-        if (pop[i] == NULL) {
-            fprintf(stderr, "<ERRO> Nao foi possivel alocar memoria para a solucao inicial.\n");
-            exit(-1);
+    indiv = malloc(sizeof(chrom)*d.popsize);
+
+    if (indiv==NULL){
+        printf("Erro na alocacao de memoria\n");
+        exit(1);
+    }
+    for (i=0; i<d.popsize; i++)
+    {
+        indiv[i].p = malloc(sizeof(int) * (d.numVertice));
+
+        if(indiv[i].p == NULL){
+            printf("\nerro na malloc init_pop ");
+            exit(1);
+        }
+        for (int k = 0; k < d.numVertice; ++k) {
+            indiv[i].p[k] = 0;
         }
 
-
-        initSol(pop[i],v,k);
-    }
-}
-
-void initSol(int* sol, int v,int k) {
-    int i, j, pos,n;
-
-    // Inicializar a solucao
-    for (i = 1; i <= v; i++)
-        sol[i] = 0;
-
-    for (int j = 0; j<k;j++) { // Atribuir k elementos ao conjunto (de modo a dividir os elementos igualmente pelo subconjunto)
-        do // Escolher um elemento sem conjunto
-        {
-            pos = random_l_h(1,v);
-        }while (sol[pos] != 0);
-
-        sol[pos] = 1; // Atribuir o elemento ao subconjunto
-    }
-}
-
-void escrevePop(FILE* fs, int* pop[POP_SIZE], const int qualidade[POP_SIZE], int v, int a, int k) {
-    int i;
-    for (i = 0; i < POP_SIZE; i++) {
-        fprintf(fs, "\n-- Individuo %d --", i);
-        escreveSol(fs, pop[i], qualidade[i],v,a,k);
-    }
-}
-
-void escreveSol(FILE* fs, const int* sol, const int qualidade, int v, int a, int k) {
-    int i, j;
-    for (j = 1; j <= v; j++) {
-        if (sol[j] == i) {
-            fprintf(fs, " %d", j);
+        for (j=0; j<d.numGenes; j++) {
+            do {
+                pos = random_l_h(0, d.numVertice - 1);
+            } while (indiv[i].p[pos] == 1);
+            indiv[i].p[pos] = 1;
         }
     }
-    fprintf(fs, " ]");
-
-    fprintf(fs, "\nQualidade: %d", qualidade);
+    return indiv;
 }
 
 float rand_01() { return ((float)rand()) / RAND_MAX; }
 
-void escreve_sol_final(int *sol,int qualidade,int v)
+void evaluate(pchrom pop, struct info d, int **mat){
+    int num1;
+    for (int i = 0; i < d.popsize; ++i) {
+        num1 = 0;
+        pop[i].fitness = calcula_fit(pop[i].p, mat, d.numVertice, 1, 3);
+        for (int j = 0; j < d.numVertice; ++j) {
+            num1 += pop[i].p[j] == 1? 1: 0;
+        }
+        if(num1 != d.numGenes || pop[i].fitness > d.sumaDoscustos)
+            pop[i].valido = 1;
+        else
+            pop[i].valido = 0;
+    }
+}
+
+chrom get_best(pchrom pop, struct info d, chrom best)
 {
     int i;
-    printf("\nConjunto : ");
-    printf("{");
-    for(int i=1; i<=v; i++)
-        if(sol[i]==1)
-            printf("%d ",i);
-    printf("}");
 
-    printf("\nQualidade: %d", qualidade);
-
-    printf("\n");
+    for (i=0; i<d.popsize; i++)
+    {
+        if (best.fitness > pop[i].fitness)
+            best=pop[i];
+    }
+    return best;
 }
 
-
-
-
-void initPop_Evol(int* pop[POP_SIZE],int** matriz, int v, int a,int k) {
+void write_best(chrom x, struct info d)
+{
     int i;
-    // Gerar cada individuo da populacao
-    for (i = 0; i <=POP_SIZE; i++) {
 
-        pop[i] = malloc(sizeof(int) * (v+1));
-
-        if (pop[i] == NULL) {
-            fprintf(stderr, "<ERRO> Nao foi possivel alocar memoria para a solucao inicial.\n");
-            exit(-1);
-        }
-
-
-        initSol_Evol(pop[i],v,a,k,matriz);
-    }
-}
-
-void initSol_Evol(int* sol, int v,int a,int k, int** mat) {
-    int i, j, pos,n,custo_viz,custo,custo_viz2;
-    int *nova_sol,*nova_sol2;
-
-    nova_sol = malloc(sizeof(int)*(v+1));
-    nova_sol2 = malloc(sizeof(int)*(v+1));
-
-    // Inicializar a solucao
-    for (i = 1; i <= v; i++)
-        sol[i] = 0;
-
-    for (int j = 0; j<k;j++) { // Atribuir k elementos ao conjunto (de modo a dividir os elementos igualmente pelo subconjunto)
-        do // Escolher um elemento sem conjunto
-        {
-            pos = random_l_h(1,v);
-        }while (sol[pos] != 0);
-
-        sol[pos] = 1; // Atribuir o elemento ao subconjunto
-    }
-
-    //Verifica a o fitness da solução
-    custo = calcula_fit(sol,mat,v,a,k);
-
-    //Gera vizinho da solucao
-    gera_vizinho(sol,nova_sol,v);
-
-    //Verifica a o fitness da solução
-    custo_viz = calcula_fit(nova_sol,mat,v,a,k);
-
-    gera_vizinho_2(sol,nova_sol2,v);
-    custo_viz2 = calcula_fit(nova_sol2,mat,v,a,k);
-
-
-    if(custo_viz2 > custo_viz)
-    {
-        custo_viz = custo_viz2;
-        substitui(nova_sol,nova_sol2,v);
-    }
-    //Avalia as duas soluções
-    if(custo_viz > custo)
-    {
-        //Substitui a solucao melhor
-        substitui(sol,nova_sol,v);
-    }
+    printf("\nBest individual: %4.1f\n", x.fitness);
+    for (i=0; i<d.numVertice; i++)
+        printf("%d", x.p[i]);
+    putchar('\n');
 }

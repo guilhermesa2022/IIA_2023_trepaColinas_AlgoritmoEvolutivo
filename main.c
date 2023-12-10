@@ -5,302 +5,403 @@
 #include "algoritmo.h"
 #include "funcao.h"
 
-
-
-void printMatriz(int** matriz, int lado){
-    for (int i = 0; i < lado; ++i) {
-        for (int j = 0; j < lado; ++j) {
-            printf("%d ",matriz[i][j]);
-        }
-        printf("\n");
-    }
-}
-int main(int argc, char *argv[]){
-
+int main(int argc, char **argv) {
+    FILE *file;
+    int runs, k, opcao;
+    //struct info EA_param;
     int **matriz = NULL;
-    int somaDoCustos = 0;
     char filename[100];
-    int runs,custo,best_custo,opcao,bestRunFitness, bestEverFitness;
-    int v,a,k=0,cont=1,i,l;
-    int *sol_inic, *sol_best, *pop[POP_SIZE], qualidade[POP_SIZE];
-    int* parents[POP_SIZE];
-    float mbf = 0.0, Prob_Reprod = 0.2;
-    int *bestRun = NULL, *bestEver = NULL;
-    int genAtual;
-    int aux;
-    FILE *f;
-// indicação do executavel do ficheiro de texto e numero de runs
-//validação de parametros e controlo de entrada
-    if(argc == 3){
 
+    if (argc == 3) {
         runs = atoi(argv[2]);
         strcpy(filename, argv[1]);
-    }
-    else if(argc == 2) {
-
+    } else if (argc == 2) {
         runs = DEFAULT_RUNS;
         strcpy(filename, argv[1]);
-    }else{
+    } else {
         runs = DEFAULT_RUNS;
         printf("Nome do Ficheiro: ");
         gets(filename);
     }
 
-    f=fopen(filename,"r");
-    if(!f){
+    file = fopen(filename, "r");
+    if (!file) {
         printf("Erro no acesso ao ficheiro dos dados\n");
         exit(1);
     }
+    init_rand();
+    fscanf(file, " k %d", &k);
+    fclose(file);
 
-    fscanf(f, " k %d",&k);
-    fclose(f);
-    aux = k;
-
-
-    printf("1- Trepa Colinas\n");
+    printf("1- Trepa Colinas probabilistico\n");
     printf("2- Algoritmo Evolutivo\n");
     printf("3- Algoritmo Hibrido\n");
-    scanf("%d",&opcao);
+    printf("4- 2 Algoritmo Hibrido\n");
+    scanf("%d", &opcao);
 
-    matriz = init_dados(filename,&v,&a,&k, &somaDoCustos);
-    printMatriz(matriz, v);
+    if (opcao == 1) {
+        int *solucaoInicial = NULL, *solucaoBest = NULL;
+        int vert = 0, arestas = 0, somaDoCustos = 0, i;
+        int custo = 0, best_custo, inter;
+        float mbf = 0;
+        matriz = inicializar_Dados_Ficheiro(filename, &vert, &arestas, &k, &somaDoCustos);
+        printMatriz(matriz, vert);
+        printf("Quantas iteracoes deseja fazer?  \n\tnumero: ");
+        scanf("%d", &inter);
 
-
-    if(opcao == 1){
-        printf("Quantas iteracoes deseja fazer?\n\tnumero: ");
-        scanf("%d",&runs);
-
-        sol_inic = malloc(sizeof(int)* (v+1));
-        sol_best = malloc(sizeof(int)* (v+1));
-
-        //MOD nao liverta memoria inicial
-        if(sol_inic == NULL || sol_best == NULL){
+        solucaoInicial = malloc(sizeof(int) * (vert));
+        solucaoBest = malloc(sizeof(int) * (vert));
+        if (solucaoInicial == NULL || solucaoBest == NULL) {
+            free(solucaoInicial);
+            free(solucaoBest);
             printf("Erro na alocacao de memoria\n");
             exit(1);
         }
-        for(i = 0; i < runs; i++){
-            // gera e mostra solucao inicial
-            gera_sol_inicial(sol_inic,v,k);
-            escreve_sol(sol_inic,v,cont);
 
-            // trepa colinas
-            custo = trepa_colinas_probabilistico(sol_inic,matriz,v,runs, a, k);
-            escreve_sol(sol_inic,v,cont);
+        for (i = 0; i < runs; ++i) {
+            gera_sol_inicial(solucaoInicial, vert, k);
+            escreve_sol(solucaoInicial, vert);
 
-            if(custo < somaDoCustos)
-                mbf += (float)custo;
 
-            if(i==0 || custo <= best_custo)
-            {
+            custo = trepa_colinas_probabilistico(solucaoInicial, matriz, vert, inter, arestas, k);
+            escreve_sol(solucaoInicial, vert);
+
+            if (custo < somaDoCustos)
+                mbf += (float) custo;
+
+            if (i == 0 || custo <= best_custo) {
                 best_custo = custo;
-                substitui(sol_best,sol_inic,v);
+                substitui(solucaoBest, solucaoInicial, vert);
             }
-            printf("\nRepeticao %d:", i);
+            if (i % 20 == 0) {
+                printf("\nRepeticao %d:", i);
+            }
+
         }
-        // Escreve eresultados globais
-        printf("\n*********************RESPOSTA FINAL*************************");
-        printf("\nMBF: %.2f\n", mbf/i);
+
+        printf("\n-----------------------------------------------------");
+        printf("\nMBF: %.2f\n", mbf / i);
         printf("\nMelhor solucao encontrada");
-        escreve_sol(sol_best,v,cont);
+        escreve_sol(solucaoBest, vert);
         printf("Custo final: %d\n", best_custo);
+
         free(matriz);
-        free(sol_inic);
-        free(sol_best);
+        free(solucaoInicial);
+        free(solucaoBest);
         return 0;
-    }else
-    if(opcao == 2) {
+    } else if (opcao == 2) {
         init_rand();
-        printf("Quantas iteracoes deseja fazer ?");
-        scanf("%d",&runs);
+        pchrom pop = NULL, parents = NULL;
+        struct info EA_param;
+        int vert = 0, arestas = 0, somaDoCustos = 0, i, inv, r;
+        float mbf;
+        int gen_actual;
+        chrom best_run, best_ever;
+        best_ever.fitness = 99999;
+        matriz = inicializar_Dados_Ficheiro(filename, &vert, &arestas, &k, &somaDoCustos);
+        printMatriz(matriz, vert);
+        EA_param.popsize = 120;
+        EA_param.pm = 0.4;
+        EA_param.pr = 0.2;
+        EA_param.tsize = 2;
+        EA_param.numGenerations = 2500;
+        EA_param.numGenes = k;
+        EA_param.numVertice = vert;
+        EA_param.sumaDoscustos = somaDoCustos;
+        int teste;
+        for (teste = 0; teste < 5; teste++) {
+            printf("********************************************************** teste: %i", teste);
+            for (r = 0; r < runs; ++r) {
+                printf("\n\t\tRepeticao %d\n", r + 1);
+                pop = init_pop(EA_param);
 
-        mbf = 0;
-        bestRun = malloc(sizeof(int) * (v+1));
-        bestEver = malloc(sizeof(int) * (v+1));
-
-        if(bestRun == NULL || bestEver == NULL){
-            printf("Erro na alocacao de memoria\n");
-            exit(1);
-        }
-
-        bestEverFitness = 0;
-        bestRunFitness = 0;
-
-        for (int i = 0; i < runs; i++) {
-
-            printf("\n-> Repeticao %d", i);
-
-            // Gera população inicial (algoritmo genetico)
-            initPop(pop,matriz,v,a,k);
-
-            // verifica a qualidade na popula��o
-            k = aux;
-            qualidadePop(pop, qualidade,matriz,v,a,k);
-
-
-            // Mostra populacao inicial (algoritmo genetico)
-            printf("\n\n---- POPULACAO INICIAL ----\n");
-            //escrevePop(stdout,pop,qualidade,v,a,k);
-
-
-            // Como ainda n�o existe, escolhe-se como melhor solu��o a primeira da popula��o (poderia ser outra qualquer)
-            memcpy(bestRun, pop[0], sizeof(int) * (v+1));
-
-            //Alocar memoria necessaria para os pais da geração.
-            for (int j = 0; j <=POP_SIZE; j++) { //eu comeco no 1 e acabo em 100
-                parents[j] = malloc(sizeof(int) * (v+1));
-                if (parents[j] == NULL) {
-                    fprintf(stderr, "<ERRO> Alocacao de memoria para os pais falhou.\n");
-                    exit(-1);
-                }
-            }
-            genAtual = 1;
-            while (genAtual <= GER_NUM) {
-                // Metodo de seleção
-                //tournament(pop, parents, qualidade, v);
-                //SEGUNDO METODO DE SELEÇÃO
-                tournament2(pop,parents,qualidade,v);
-
-                //AQUI DENTRO ESTÃO PRESENTES AMBOS OS OPERADORES GENETICOS NORMAIS E OS NOVOS
-                geneticOperators(parents, pop, qualidade,matriz,v,a,k);
-
-                //verificar qualidade depois de atuarem os operadores geneticos
-                k = aux;
-                qualidadePop(pop, qualidade,matriz,v,a,k);
-
-                //Verificar a qualidade de cada solucao na população,
-                //encontrar a maior e armazena-la no ponteiro bestrun e tambem o valor da qualidade dessa solucao em bestrunfitness
-                for (int j = 0; j < POP_SIZE; j++)
-                {
-                    if (qualidade[j] > bestRunFitness) {
-                        memcpy(bestRun, pop[j], sizeof(int) * (v+1));
-                        bestRunFitness = qualidade[j];
+                /*for (int j = 0; j < EA_param.popsize; ++j) {
+                    printf("[[");
+                    for (int l = 0; l < EA_param.numVertice; ++l) {
+                        printf(" %d ", pop[j].p[l]);
                     }
+                    printf("]]\n");
+                }*/
+                evaluate(pop, EA_param, matriz);
+                /*
+    ////////////////////////////////////////////////////////////* teste
+                printf("\n{");
+                for (int j = 0; j < EA_param.popsize; ++j) {
+                    printf("%.0f ------- %d |!| ", pop[j].fitness, pop[j].valido);
                 }
-                genAtual++;
-            }
+                printf("}\n");
+    ////////////////////////////////////////////////////////////
+                 */
 
-            mbf += bestRunFitness;
-            if (i == 0 || bestRunFitness > bestEverFitness) {
-                memcpy(bestEver, bestRun, sizeof(int) * (v+1));
-                bestEverFitness = bestRunFitness;
+                gen_actual = 1;
+                best_run = pop[0];
+
+                //write_best(best_run, EA_param);
+
+                best_run = get_best(pop, EA_param, best_run);
+                escreve_sol(best_run.p, EA_param.numVertice);
+
+                parents = malloc(sizeof(chrom) * EA_param.popsize);
+
+                if (parents == NULL) {
+                    printf("Erro na alocacao de memoria\n");
+                    for (int i = 0; i < EA_param.popsize; ++i) { free(pop[i].p); }
+                    free(pop);
+                    exit(1);
+                }
+
+                while (gen_actual <= EA_param.numGenerations) {
+                    tournament2(pop, EA_param, parents);
+                    //tournament2(pop, EA_param, parents);
+                    /*
+                    if(r == 0)
+                        tournament3(pop, EA_param, parents, best_run);
+                    else
+                        tournament3(pop, EA_param, parents, best_ever);
+                        */
+
+                    /*
+                    if(r == 0)
+                        genetic_operators2(parents, EA_param, pop, best_run);
+                    else
+                        genetic_operators2(parents, EA_param, pop, best_ever);
+                        */
+
+                    genetic_operators(parents, EA_param, pop);
+                    evaluate(pop, EA_param, matriz);
+                    best_run = get_best(pop, EA_param, best_run);
+                    gen_actual++;
+                }
+
+                //printf("}\n");
+                for (inv = 0, i = 0; i < EA_param.popsize; i++)
+                    if (pop[i].valido == 1)
+                        inv++;
+
+                printf("\nRepeticao %d:", r);
+                write_best(best_run, EA_param);
+                printf("\nPercentagem Invalidos: %.2f\n", 100 * (float) inv / EA_param.popsize);
+                if (best_run.fitness < somaDoCustos)
+                    mbf += best_run.fitness;
+                if (r == 0 || best_run.fitness < best_ever.fitness)
+                    best_ever = best_run;
+                // Liberta a memória usada
+                free(parents);
+                free(pop);
+
+                if (r == 4) {
+                    printf("----teste ate 5------%f--------------", best_run.fitness);
+                    printf("----teste ate 5------%f--------------", best_run.fitness);
+                    printf("----teste ate 5------%f--------------", best_run.fitness);
+                    printf("\n\nMBF: %f\n", mbf / r);
+                    printf("\nMelhor solucao encontrada");
+                    write_best(best_ever, EA_param);
+                    escreve_sol(best_ever.p, EA_param.numVertice);
+                }
+                if (r == 9) {
+                    printf("----teste ate 10------%f--------------", best_run.fitness);
+                    printf("----teste ate 10------%f--------------", best_run.fitness);
+                    printf("----teste ate 10------%f--------------", best_run.fitness);
+                    printf("\n\nMBF: %f\n", mbf / r);
+                    printf("\nMelhor solucao encontrada");
+                    write_best(best_ever, EA_param);
+                    escreve_sol(best_ever.p, EA_param.numVertice);
+                }
+                if (r == 14) {
+                    printf("----teste ate 15------%f--------------", best_run.fitness);
+                    printf("----teste ate 15------%f--------------", best_run.fitness);
+                    printf("----teste ate 15------%f--------------", best_run.fitness);
+                    printf("\n\nMBF: %f\n", mbf / r);
+                    printf("\nMelhor solucao encontrada");
+                    write_best(best_ever, EA_param);
+                    escreve_sol(best_ever.p, EA_param.numVertice);
+                }
             }
-//limpar o buffer
-            fflush(stdout);
+            printf("-----------------%f--------------", best_run.fitness);
+            printf("\n\nMBF: %f\n", mbf / r);
+            printf("\nMelhor solucao encontrada");
+            write_best(best_ever, EA_param);
+            escreve_sol(best_ever.p, EA_param.numVertice);
         }
+        return 0;
+    }else if (opcao == 3) {
+        init_rand();
+        pchrom pop = NULL, parents = NULL;
+        struct info EA_param;
+        int vert = 0, arestas = 0, somaDoCustos = 0, i, inv, r;
+        float mbf, best_custo;
+        int gen_actual;
+        chrom best_run, best_ever, solucaoBest;
+        best_ever.fitness = 99999;
+        matriz = inicializar_Dados_Ficheiro(filename, &vert, &arestas, &k, &somaDoCustos);
+        printMatriz(matriz, vert);
+        EA_param.popsize = 120;
+        EA_param.pm = 0.4;
+        EA_param.pr = 0.2;
+        EA_param.tsize = 2;
+        EA_param.numGenerations = 2000;
+        EA_param.numGenes = k;
+        EA_param.numVertice = vert;
+        EA_param.sumaDoscustos = somaDoCustos;
 
-        //Resultados do modelo
+        printf("Quantas iteracoes deseja fazer?  \n\tnumero: ");
+        scanf("%d", &runs);
 
-        printf("\n\nMBF: %.2f\n", mbf / runs);
-        printf("\n-- Melhor solucao encontrada --");
-        escreve_sol_final(bestEver, bestEverFitness, v);
+            for (r = 0; r < runs; ++r) {
+                printf("\n\t\tRepeticao %d\n", r + 1);
+                pop = init_pop(EA_param);
+
+                evaluate(pop, EA_param, matriz);
+                gen_actual = 1;
+                best_run = pop[0];
+
+                best_run = get_best(pop, EA_param, best_run);
+                escreve_sol(best_run.p, EA_param.numVertice);
+
+                parents = malloc(sizeof(chrom) * EA_param.popsize);
+
+                if (parents == NULL) {
+                    printf("Erro na alocacao de memoria\n");
+                    for (int i = 0; i < EA_param.popsize; ++i) { free(pop[i].p); }
+                    free(pop);
+                    exit(1);
+                }
+
+                while (gen_actual <= EA_param.numGenerations) {
+                    tournament2(pop, EA_param, parents);
+                    //tournament2(pop, EA_param, parents);
+                    /*
+                    if(r == 0)
+                        tournament3(pop, EA_param, parents, best_run);
+                    else
+                        tournament3(pop, EA_param, parents, best_ever);
+                        */
+
+                    /*
+                    if(r == 0)
+                        genetic_operators2(parents, EA_param, pop, best_run);
+                    else
+                        genetic_operators2(parents, EA_param, pop, best_ever);
+                        */
+
+                    genetic_operators(parents, EA_param, pop);
+                    evaluate(pop, EA_param, matriz);
+                    best_run = get_best(pop, EA_param, best_run);
+                    gen_actual++;
+                }
+
+                best_run.fitness = trepa_colinas_probabilistico(best_run.p, matriz, EA_param.numVertice, runs * 10000, arestas, k);
+
+                    if (best_run.fitness < somaDoCustos)
+                        mbf += best_run.fitness;
+                    if (r == 0 ||best_run.fitness < best_ever.fitness)
+                        best_ever = best_run;
 
 
-        //libertação da memoria dinamica completa
-        free(matriz);
-        free(bestEver);
-        free(bestRun);
+                for (inv = 0, i = 0; i < EA_param.popsize; i++)
+                    if (pop[i].valido == 1)
+                        inv++;
+
+                printf("\nRepeticao %d:", r);
+                write_best(best_run, EA_param);
+                printf("\nPercentagem Invalidos: %.2f\n", 100 * (float) inv / EA_param.popsize);
+                // Liberta a memória usada
+                free(parents);
+                free(pop);
+
+            }
+            printf("-----------------%f--------------", best_run.fitness);
+            printf("\n\nMBF: %f\n", mbf / r);
+            printf("\nMelhor solucao encontrada");
+            write_best(best_ever, EA_param);
+            escreve_sol(best_ever.p, EA_param.numVertice);
+            return 0;
+
+    }else if(opcao == 4){
+        init_rand();
+        pchrom pop = NULL, parents = NULL;
+        struct info EA_param;
+        int vert = 0, arestas = 0, somaDoCustos = 0, i, inv, r;
+        float mbf;
+        int gen_actual;
+        chrom best_run, best_ever;
+        best_ever.fitness = 99999;
+        matriz = inicializar_Dados_Ficheiro(filename, &vert, &arestas, &k, &somaDoCustos);
+        printMatriz(matriz, vert);
+        EA_param.popsize = 120;
+        EA_param.pm = 0.4;
+        EA_param.pr = 0.2;
+        EA_param.tsize = 2;
+        EA_param.numGenerations = 2500;
+        EA_param.numGenes = k;
+        EA_param.numVertice = vert;
+        EA_param.sumaDoscustos = somaDoCustos;
+
+            for (r = 0; r < runs; ++r) {
+                printf("\n\t\tRepeticao %d\n", r + 1);
+                pop = init_pop(EA_param);
+
+                evaluate(pop, EA_param, matriz);
+
+                gen_actual = 1;
+                best_run = pop[0];
+
+                //write_best(best_run, EA_param);
+
+                best_run = get_best(pop, EA_param, best_run);
+                escreve_sol(best_run.p, EA_param.numVertice);
+
+                parents = malloc(sizeof(chrom) * EA_param.popsize);
+
+                if (parents == NULL) {
+                    printf("Erro na alocacao de memoria\n");
+                    for (int i = 0; i < EA_param.popsize; ++i) { free(pop[i].p); }
+                    free(pop);
+                    exit(1);
+                }
+
+                printf("}\n");
+                while (gen_actual <= EA_param.numGenerations) {
+                    tournament2(pop, EA_param, parents);
+                    genetic_operators(parents, EA_param, pop);
+
+                    if(rand_01() < 0.4){
+                        int numrero = random_l_h(0, EA_param.popsize - 1);
+
+                        for (int j = 0; j < numrero; ++j) {
+                            pop[j].fitness = trepa_colinas_probabilistico(pop[j].p, matriz, EA_param.numVertice, runs, arestas, k);
+                        }
+                    }
+
+                    evaluate(pop, EA_param, matriz);
+                    best_run = get_best(pop, EA_param, best_run);
+                    gen_actual++;
+                }
+
+                printf("}\n");
+                for (inv = 0, i = 0; i < EA_param.popsize; i++)
+                    if (pop[i].valido == 1)
+                        inv++;
+
+                printf("\nRepeticao %d:", r);
+                write_best(best_run, EA_param);
+                printf("\nPercentagem Invalidos: %.2f\n", 100 * (float) inv / EA_param.popsize);
+                if (best_run.fitness < somaDoCustos)
+                    mbf += best_run.fitness;
+                if (r == 0 || best_run.fitness < best_ever.fitness)
+                    best_ever = best_run;
+                // Liberta a memória usada
+                free(parents);
+                free(pop);
+            }
+            printf("_______________________________________________________");
+            printf("\n\nMBF: %f\n", mbf / r);
+            printf("\nMelhor solucao encontrada");
+            write_best(best_ever, EA_param);
+            escreve_sol(best_ever.p, EA_param.numVertice);
+
 
         return 0;
     }
-
-    if(opcao == 3)
-    {
-        printf("Quantas iteracoes deseja fazer ?");
-        scanf("%d",&runs);
-        init_rand();
-
-        mbf = 0;
-        bestRun = malloc(sizeof(int) * (v+1));
-        bestEver = malloc(sizeof(int) * (v+1));
-
-        if(bestRun == NULL || bestEver == NULL){
-            printf("Erro na alocacao de memoria\n");
-            exit(1);
-        }
-
-        bestEverFitness = 0;
-        bestRunFitness = 0;
-        for (int i = 0; i < runs; i++) {
-
-            printf("\n-> Repeticao %d", i);
-
-            // Gera população inicial (algoritmo genetico)
-            initPop(pop,matriz,v,a,k);
-
-            //Gera população inicial (algoritmo hibrido)
-            //initPop_Evol(pop,matriz,v,a,k);
-
-            k = aux;
-            qualidadePop(pop, qualidade,matriz,v,a,k);
-            // Mostra populacao inicial (algoritmo genetico)
-            printf("\n\n---- POPULACAO INICIAL ----\n");
-
-            // Como ainda n�o existe, escolhe-se como melhor solu��o a primeira da popula��o (poderia ser outra qualquer)
-            memcpy(bestRun, pop[0], sizeof(int) * (v+1));
-
-
-            //Alocar memoria necessaria para os pais da geração.
-            for (int j = 0; j <=POP_SIZE; j++) {
-                parents[j] = malloc(sizeof(int) * (v+1));
-                if (parents[j] == NULL) {
-                    fprintf(stderr, "<ERRO> Alocacao de memoria para os pais falhou.\n");
-                    exit(-1);
-                }
-            }
-
-            genAtual = 1;
-
-            while (genAtual <=GER_NUM) {
-                //tournament(pop, parents, qualidade, v);
-
-                //SEGUNDO METODO DE SELEÇÃO
-                tournament2(pop,parents,qualidade,v);
-
-
-                //AQUI DENTRO ESTÃO PRESENTES AMBOS OS OPERADORES GENETICOS NORMAIS E OS NOVOS
-                geneticOperators(parents, pop, qualidade,matriz,v,a,k);
-                k = aux;
-                qualidadePop(pop, qualidade,matriz,v,a,k);
-
-
-                //gera um numero aleatorio entre 0 e 1 ( l )
-                //vai à entidade l da população pop e aplica o algoritmo de pesquisa local (trepa-colias)
-                //finalmente guarda a qualidade ou fitness ou custo dessa entidade l no array que contem as qualidades da população
-                // algoritmo hibrido
-
-                if(rand_01() <= PROB_REPROD)
-                {
-                    l = random_l_h(1,POP_SIZE-1);
-                    if(qualidade[l] != 0)
-                    {
-                        qualidade[l] = trepa_colinas(pop[l],matriz,v,a,k,runs);
-                    }
-                }
-
-                for (int j = 1; j < POP_SIZE; j++)
-                {
-                    if (qualidade[j] > bestRunFitness) {
-                        memcpy(bestRun, pop[j], sizeof(int) * (v+1));
-                        bestRunFitness = qualidade[j];
-                    }
-                }
-                genAtual++;
-            }
-
-
-            mbf += bestRunFitness;
-            if (i == 0 || bestRunFitness > bestEverFitness) {
-                memcpy(bestEver, bestRun, sizeof(int) * (v+1));
-                bestEverFitness = bestRunFitness;
-            }
-
-            fflush(stdout);
-        }
-
-        printf("\n\nMBF: %.2f\n", mbf / runs);
-        printf("\n-- Melhor solucao encontrada --");
-        escreve_sol_final(bestEver, bestEverFitness,v);
-
-        return 0;
-    }
+    return 0;
 }
