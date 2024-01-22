@@ -5,7 +5,7 @@
 #ifndef IIAPT2_UTILS_H
 #define IIAPT2_UTILS_H
 #define DEFAULT_RUNS 10
-#define PROB_RECUAR 0.05
+#define PROB_RECUAR 0.000
 #include "algoritmo.h"
 
 void init_rand();

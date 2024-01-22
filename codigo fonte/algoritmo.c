@@ -16,10 +16,10 @@ int trepa_colinas_probabilistico(int sol[], int **mat, int vert, int num_iter, i
     int *nova_sol = NULL ,*nova_sol2 = NULL ,custo ,custo_viz ,custo_viz2 ,i;
 
     nova_sol = malloc(sizeof(int)*vert);
-    nova_sol2 = malloc(sizeof(int)*vert);
+    //nova_sol2 = malloc(sizeof(int)*vert);
 
 
-    if (nova_sol == NULL || nova_sol2 == NULL){
+    if (nova_sol == NULL /*|| nova_sol2 == NULL*/){
         printf("Erro na alocacao de memoria");
         exit(1);
     }
@@ -31,13 +31,13 @@ int trepa_colinas_probabilistico(int sol[], int **mat, int vert, int num_iter, i
     {
         gera_vizinho(sol, nova_sol, vert);
         custo_viz = calcula_fit(nova_sol, mat, vert,arestas,k);
-        gera_vizinho(sol,nova_sol2,vert);
-        custo_viz2 = calcula_fit(nova_sol2,mat,vert,arestas,k);
+        //gera_vizinho(sol,nova_sol2,vert);
+        //custo_viz2 = calcula_fit(nova_sol2,mat,vert,arestas,k);
 
-        if(custo_viz2 <= custo_viz){
-            custo_viz = custo_viz2;
-            substitui(nova_sol,nova_sol2,vert);
-        }
+        //if(custo_viz2 < custo_viz){
+          //  custo_viz = custo_viz2;
+            //substitui(nova_sol,nova_sol2,vert);
+        //}
         if (custo_viz <= custo){
             substitui(sol, nova_sol, vert);
             custo = custo_viz;
@@ -78,7 +78,7 @@ void gera_vizinho(int a[], int b[], int n)
     b[p2] = temp;
 }
 
-void substitui(int a[], int b[], int n){
+void substitui(int *a, int *b, int n){
     for(int i=0; i < n; i++)
         a[i]=b[i];
 }
@@ -115,19 +115,53 @@ void tournament2(pchrom pop, struct info d, pchrom parents)
         }
     }
 }
+
+void tournament5(pchrom pop, struct info d, pchrom parents) {
+    int i, j, x, k, winner;
+    int pos[T_SIZE];
+
+    if (T_SIZE < 2 || T_SIZE > d.numVertice) {
+        fprintf(stderr, "<ERRO> T_SIZE tem de estar entre 2 e M.\n");
+        exit(-1);
+    }
+
+    // Realiza POP_SIZE torneios
+    for (i = 0; i < d.popsize; i++) {
+        for (k = 0; k < T_SIZE; k++) {
+            pos[k] = -1;
+            do {
+                x = random_l_h(0, d.popsize - 1);
+                for (j = 0; j < k; j++)
+                    if (pos[j] == x)
+                        break;
+            } while (pos[j] == x);
+
+            pos[k] = x;
+        }
+
+        winner = -1;
+        for (k = 0; k < T_SIZE; k++)
+            if (winner == -1 || pop[pos[k]].fitness < pop[winner].fitness)
+                winner = pos[k];
+
+            memcpy(&parents[i], &pop[winner], sizeof(chrom));
+    }
+
+}
+
 void tournament3(pchrom pop, struct info d, pchrom parents, chrom beste)
 {
     for (int i = 0; i < d.popsize; ++i) {
         if(i % 2 == 1){
             if(pop[i].fitness < pop[i-1].fitness) {
                 parents[i] = pop[i];
-                if(rand_01() <= 0.05)
+                if(rand_01() <= 0.5)
                     parents[i - 1] = beste;
                 else
                     parents[i-1] = pop[i-1];
             }else{
                 parents[i-1]=pop[i-1];
-                if(rand_01() <= 0.05)
+                if(rand_01() <= 0.5)
                     parents[i] = beste;
                 else
                     parents[i] = pop[i];
@@ -141,7 +175,7 @@ void genetic_operators(pchrom parents, struct info d, pchrom offspring)
     // Recombinação com um ponto de corte
     crossover3(parents, d, offspring);
     // Mutação binária
-    mutation(offspring, d);
+    //mutation(offspring, d);
 
     repair(offspring, d);
 
@@ -150,13 +184,17 @@ void genetic_operators(pchrom parents, struct info d, pchrom offspring)
 void genetic_operators2 (pchrom parents, struct info d, pchrom offspring, chrom melhor)
 {
     // Recombinação com um ponto de corte
-    crossover2(parents, d, offspring, melhor);
+    //crossover2(parents, d, offspring, melhor);
     // Mutação binária
     mutation(offspring, d);
-
-    repair(offspring, d);
+    //mutation_swap(offspring, d);
+    //repair(offspring, d);
 
 }
+
+
+
+
 void crossover(pchrom parents, struct info d, pchrom offspring)
 {
     int i, j, point;
@@ -278,19 +316,19 @@ void mutation_swap(pchrom offspring, struct info d)
 {
     int i,x,y;
 
-    for (i=0; i<d.popsize; i++)
-            if (rand_01() < d.pm) {
-                do {
-                    x = random_l_h(0, d.numVertice - 1);
-                } while (offspring[i].p[x] == 0);
+    for (i=0; i<d.popsize; i++) {
 
-                do {
-                    y = random_l_h(0, d.numVertice - 1);
-                } while (offspring[i].p[y] == 1);
+        do {
+            x = random_l_h(0, d.numVertice - 1);
+        } while (offspring[i].p[x] == 0);
 
-                offspring[i].p[x] = 0;
-                offspring[i].p[y] = 1;
-            }
+        do {
+            y = random_l_h(0, d.numVertice - 1);
+        } while (offspring[i].p[y] == 1);
+
+        offspring[i].p[x] = 0;
+        offspring[i].p[y] = 1;
+    }
 }
 
 void mutation2(pchrom offspring, struct info d)
@@ -342,5 +380,6 @@ void repair(pchrom offspring, struct info d){
                 offspring[i].p[pos] = 0;
             }
         }
+        offspring[i].valido = 0;
     }
 }

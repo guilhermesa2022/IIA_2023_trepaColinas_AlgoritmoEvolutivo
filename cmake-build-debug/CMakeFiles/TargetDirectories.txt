@@ -1,3 +1,0 @@
-C:/Users/35193/OneDrive - ISEC/Ambiente de Trabalho/TrabalhoPratico/IIA_2023_trepaColinas_AlgoritmoEvolutivo/cmake-build-debug/CMakeFiles/IIA_2023_trepaColinas_AlgoritmoEvolutivo.dir
-C:/Users/35193/OneDrive - ISEC/Ambiente de Trabalho/TrabalhoPratico/IIA_2023_trepaColinas_AlgoritmoEvolutivo/cmake-build-debug/CMakeFiles/edit_cache.dir
-C:/Users/35193/OneDrive - ISEC/Ambiente de Trabalho/TrabalhoPratico/IIA_2023_trepaColinas_AlgoritmoEvolutivo/cmake-build-debug/CMakeFiles/rebuild_cache.dir

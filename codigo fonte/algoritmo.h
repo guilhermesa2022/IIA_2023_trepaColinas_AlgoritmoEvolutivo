@@ -5,6 +5,7 @@
 #ifndef IIAPT2_ALGORITMO_H
 #define IIAPT2_ALGORITMO_H
 #define MAX_OBJ 500
+#define T_SIZE 4
 
 struct info
 {
@@ -45,4 +46,5 @@ void crossover2(pchrom parents, struct info d, pchrom offspring, chrom melhor);
 void genetic_operators2 (pchrom parents, struct info d, pchrom offspring, chrom melhor);
 void crossover3(pchrom parents, struct info d, pchrom offspring);
 void mutation_swap(pchrom offspring, struct info d);
+void tournament5(pchrom pop, struct info d, pchrom parents);
 #endif //IIAPT2_ALGORITMO_H

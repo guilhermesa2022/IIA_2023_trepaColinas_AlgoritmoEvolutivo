@@ -130,6 +130,7 @@ pchrom init_pop(struct info d)
         printf("Erro na alocacao de memoria\n");
         exit(1);
     }
+
     for (i=0; i<d.popsize; i++)
     {
         indiv[i].p = malloc(sizeof(int) * (d.numVertice));
@@ -138,6 +139,7 @@ pchrom init_pop(struct info d)
             printf("\nerro na malloc init_pop ");
             exit(1);
         }
+
         for (int k = 0; k < d.numVertice; ++k) {
             indiv[i].p[k] = 0;
         }
@@ -159,13 +161,7 @@ void evaluate(pchrom pop, struct info d, int **mat){
     for (int i = 0; i < d.popsize; ++i) {
         num1 = 0;
         pop[i].fitness = calcula_fit(pop[i].p, mat, d.numVertice, 1, 3);
-        for (int j = 0; j < d.numVertice; ++j) {
-            num1 += pop[i].p[j] == 1? 1: 0;
-        }
-        if(num1 != d.numGenes || pop[i].fitness > d.sumaDoscustos)
-            pop[i].valido = 1;
-        else
-            pop[i].valido = 0;
+
     }
 }
 
